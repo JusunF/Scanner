@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg[binary]
+python-dotenv
+python-multipart
+pymupdf
+pytesseract
+pillow
+python-docx
+reportlab

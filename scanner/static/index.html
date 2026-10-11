@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Document Scanner</title>
+<style>
+    body{font-family:system-ui,sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem}
+    table{width:100%;border-collapse:collpase;margin-top:1rem}
+    th,td{padding:.5rem;border-bottom:1px solid #ddd;text-align:left}
+    pre{background:#f5f5f5;padding:1rem;white-space:pre-wrap;max-height:400px;overflow:auto}
+    button{cursor:pointer}
+</style>
+</head>
+<body>
+<h1>Document Scanner</h1>
+<h3>Link to MP3</h3>
+<input type="text" id="yt" placeholder="Paste video link" size="50">
+<button onclick="toMp3()">Convert to MP3</button>
+<span id="ytStatus"></span>
+<hr>
+<input type = "file" id="file">
+<button onclick="upload()">Upload &amp; scan</button>
+<span id="status"></span>
+
+<table>
+    <thead><tr><th>Name</th><th>Uploaded</th><th>Actions</th></tr></thead>
+    <tbody id="rows"></tbody>
+</table>
+
+<h3>Extracted text</h3>
+<pre id="text">Click "View text" on a document.</pre>
+
+<script>
+const esc = s => s.replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+async function load(){
+    const docs = await (await fetch('/api/documents')).json();
+    document.getElementById('rows').innerHTML = docs.map(d => `
+        <tr>
+            <td>${esc(d.original_name)}</td>
+            <td>${new Date(d.created_at).toLocaleString()}</td>
+            <td>
+                <button onclick="view(${d.id})">View text</button>
+                <select id="fmt${d.id}"><option>pdf</option><option>docx</option><option>txt</option><option>png</option><option>jpg</option></select>
+                <button onclick="convert(${d.id})">Convert</button>
+                <button onclick="removeDoc(${d.id})">Delete</button>
+            </td>
+        </tr>`
+    ).join('');
+}
+
+async function upload(){
+    const f = document.getElementById('file').files[0];
+    if (!f) return;
+    const status = document.getElementById('status');
+    status.textContent = 'Scanning...';
+    const fd = new FormData()
+    fd.append('file', f);
+    const r = await fetch('/api/documents', { method: 'POST', body: fd});
+    status.textContent = r.ok ? ' Done ' : ' ' + (await r.json()).detail;
+    load();
+}
+
+async function view(id){
+    const d = await(await fetch('/api/documents/' + id)).json();
+    document.getElementById('text').textContent = d.extracted_text || '(no text found)';
+}
+
+function convert(id){
+    const fmt = document.getElementById('fmt' + id).value;
+    window.location = `/api/documents/${id}/convert?to=${fmt}`;
+}
+
+async function removeDoc(id){
+    if (!confirm('Delete this document?')) return;
+    await fetch('/api/documents/' + id, { method: 'DELETE'});
+    load();
+}
+
+async function toMp3() {
+  const url = document.getElementById('yt').value.trim();
+  if (!url) return;
+  const s = document.getElementById('ytStatus');
+  s.textContent = ' Converting... (can take a minute)';
+  const r = await fetch('/api/url-to-mp3', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({url})
+  });
+  if (!r.ok) { s.textContent = ' ' + (await r.json()).detail; return; }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(await r.blob());
+  a.download = 'audio.mp3';
+  a.click();
+  s.textContent = ' Done';
+}
+
+load();
+</script>
+</body>
+</html>
