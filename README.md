@@ -87,7 +87,7 @@ Scanner/
 From the `scanner/` folder:
 
 ```
-uvicorn app.main:app --port 5000 --reload
+uvicorn app.main:app --host 0.0.0.0 --port 5000 --reload
 ```
 
 Then open <http://localhost:5000>. The database table is created automatically on first run.
