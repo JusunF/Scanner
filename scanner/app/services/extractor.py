@@ -32,7 +32,7 @@ def _from_pdf(path: Path) -> str:
     return "\n\n".join(pages)
 
 def _from_docx(path: Path) -> str:
-    return "\n".joi(p.text for p in DocxDocument(path).paragraphs)
+    return "\n".join(p.text for p in DocxDocument(path).paragraphs)
 
 def extract_text(path: Path) -> str:
     ext = path.suffix.lower()
